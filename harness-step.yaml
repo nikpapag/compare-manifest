@@ -1,0 +1,86 @@
+                          - step:
+                                type: ShellScript
+                                name: Compare-Manifest
+                                identifier: CompareManifest
+                                spec:
+                                    shell: Bash
+                                    onDelegate: true
+                                    source:
+                                        type: Inline
+                                        spec:
+                                            script: |-
+                                                export GITHUB_TOKEN="$GITHUB_TOKEN"
+
+                                                git config --global user.name "$GITHUB_USERNAME"
+                                                git config --global user.email "$GITHUB_EMAIL"
+
+                                                echo -ne '\n' | gh auth login --web
+
+                                                mkdir gitrepo
+                                                cd gitrepo
+
+
+                                                git clone https://github.com/nikpapag/payment-service.git
+
+                                                ls -lrt
+
+                                                rm -rf harness-cie-lab
+
+                                                git clone https://github.com/harness-workshop/harness-cie-lab.git
+
+
+                                                curl --location --request GET 'https://app.harness.io/gateway/ng/api/file-store/files/$FILE_ID/download?accountIdentifier=$ACCOUNT_ID&orgIdentifier=$ORG_ID&projectIdentifier=$PROJECT_ID' \
+                                                --header 'x-api-key: $API_KEY' \
+                                                --header 'Cookie: _cfuvid=bgiZTUGmv05FPM2oM849epH9nvFuIdBfucU8I5EPVL8-1660174785673-0-604800000' > service.yaml
+
+
+                                                read -r -d '' script <<-"EOF"
+                                                # Importing difflib
+                                                import difflib
+
+                                                with open('service.yaml') as file_1:
+                                                    file_1_text = file_1.readlines()
+
+                                                with open('./harness-cie-lab/harness-deploy/payment-service-dev/service.yaml') as file_2:
+                                                    file_2_text = file_2.readlines()
+
+                                                # Find and print the diff:
+                                                for line in difflib.unified_diff(
+                                                        file_1_text, file_2_text, fromfile='file1.txt',
+                                                        tofile='file2.txt', lineterm=''):
+                                                    print(line)
+                                                EOF
+                                                python3 -c "$script"
+
+                                                rm service.yaml
+                                    environmentVariables:
+                                        - name: GITHUB_USERNAME
+                                          type: String
+                                          value: <+secrets.getValue("github_username")>
+                                        - name: GITHUB_EMAIL
+                                          type: String
+                                          value: <+secrets.getValue("github_email")>
+                                        - name: GITHUB_TOKEN
+                                          type: String
+                                          value: <+secrets.getValue("nikptoken")>
+                                        - name: ACCOUNT_ID
+                                          type: String
+                                          value: IFG41DWvSnaRLOVNB2uesg
+                                        - name: PROJECT_ID
+                                          type: String
+                                          value: nikphelmgit
+                                        - name: ORG_ID
+                                          type: String
+                                          value: default
+                                        - name: API_KEY
+                                          type: String
+                                          value: <+secrets.getValue("apikey")
+                                        - name: FILE_ID
+                                          type: String
+                                          value: workshopmanifest_service_yaml_a6c22c
+                                    outputVariables: []
+                                    executionTarget: {}
+                                    delegateSelectors:
+                                        - handson-workshop
+                                timeout: 10m
+                                failureStrategies: []
